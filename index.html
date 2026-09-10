@@ -424,14 +424,30 @@ const SKILLS = [
   {id:'gamesense', label:'GAME SENSE'},
   {id:'pvp', label:'PVP'},
 ];
-const STORAGE_KEY = 'players-v2';
+const STORAGE_KEY = 'players-v2'; // used only as a local fallback if Firebase isn't configured yet
 const ADMIN_KEY = 'is-admin-v1';
 const ADMIN_PIN = '2468'; // change this to whatever PIN you want admins to use
+
+/* ---------- FIREBASE (shared live data — every visitor reads/writes this) ----------
+   1. Go to https://console.firebase.google.com -> Add project (free).
+   2. In the project, click "Build > Realtime Database" -> Create database -> start in TEST MODE.
+   3. Click the gear icon (Project settings) -> under "Your apps" click the web icon </> -> register an app.
+   4. Copy the firebaseConfig object it gives you and paste the values below.
+   5. In Realtime Database -> Rules tab, for now you can leave test-mode rules (open read/write),
+      or lock it down later since the admin PIN alone isn't real security. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCgxc7IN9XBSQybXYrNA69DTRUapnD9XuA",
+  authDomain: "strazzz-fcabe.firebaseapp.com",
+  databaseURL: "https://strazzz-fcabe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "strazzz-fcabe",
+};
+const FIREBASE_CONFIGURED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
 
 let players = []; // {id, ign, type, skinUrl, tier, testedOn, skills:{grinding,gamesense,pvp}}
 let draggedId = null;
 let isAdmin = false;
 let currentSkinViewer = null;
+let fbRef = null; // Firebase database reference for the players list, once initialized
 
 /* ---------- 3D SKIN MODEL (drag to rotate) ---------- */
 async function mountSkinViewer(canvas, skinUrl){
@@ -682,8 +698,23 @@ function renderReport(p){
   }
 }
 
-/* ---------- STORAGE (localStorage — per-browser) ---------- */
+/* ---------- STORAGE ----------
+   If Firebase is configured, players live in Realtime Database and every open
+   tab (admin or guest) gets pushed live updates automatically via onValue().
+   If it isn't configured yet, this falls back to localStorage so the page still
+   works while you're testing — but that fallback is per-browser only and will
+   NOT sync between devices/links, which was the original problem. */
 async function save(){
+  if(fbRef){
+    try{
+      const { set } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js');
+      await set(fbRef, players);
+    }catch(err){
+      console.error('Firebase save failed', err);
+      statusEl.textContent = 'Save failed — check your connection or Firebase setup.';
+    }
+    return; // onValue listener below will re-render everyone, including us
+  }
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
   }catch(err){
@@ -691,6 +722,7 @@ async function save(){
   }
 }
 async function load(){
+  if(fbRef) return; // live listener (attached in initFirebase) handles rendering
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){ players = JSON.parse(raw); }
@@ -698,6 +730,29 @@ async function load(){
     players = [];
   }
   renderAll();
+}
+async function initFirebase(){
+  if(!FIREBASE_CONFIGURED){
+    statusEl.textContent = 'Live sync not set up yet — changes stay on this device only. See FIREBASE_CONFIG in the code.';
+    return;
+  }
+  try{
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js');
+    const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js');
+    const app = initializeApp(FIREBASE_CONFIG);
+    const db = getDatabase(app);
+    fbRef = ref(db, 'players');
+    onValue(fbRef, (snapshot)=>{
+      players = snapshot.val() || [];
+      renderAll();
+    }, (err)=>{
+      console.error('Firebase read failed', err);
+      statusEl.textContent = 'Live sync error — check Firebase rules/config.';
+    });
+  }catch(err){
+    console.error('Firebase init failed', err);
+    statusEl.textContent = 'Live sync failed to load — falling back to this device only.';
+  }
 }
 async function loadAdminFlag(){
   try{
@@ -787,7 +842,8 @@ resetBtn.addEventListener('click', async ()=>{
 async function init(){
   buildTierRows();
   await loadAdminFlag();
-  await load();
+  await initFirebase();
+  await load(); // no-op if Firebase connected; the live listener renders instead
 }
 init();
 </script>
