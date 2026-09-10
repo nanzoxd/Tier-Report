@@ -328,6 +328,9 @@
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .skin-frame img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;}
+  .skin-frame canvas{width:100%;height:100%;cursor:grab;touch-action:none;}
+  .skin-frame canvas:active{cursor:grabbing;}
+  .skin-frame-hint{font-size:10px;letter-spacing:.05em;color:#8a8492;text-transform:uppercase;margin-top:6px;}
   .skills-title, .breakdown-title{
     font-family:'Anton',sans-serif;font-weight:400;font-size:19px;
     display:flex;align-items:center;gap:10px;margin:0 0 10px;
@@ -384,7 +387,7 @@
     <div class="skin-url-row" id="skinUrlRow">
       <input type="text" id="skinUrlInput" placeholder="Skin render URL (optional — e.g. from namemc.com, leave blank for default Steve/Alex)">
     </div>
-    <div class="hint">Premium pulls the real Mojang skin head. Cracked accounts have no skin on record, so paste a skin render URL if you have one, or leave blank to use the default Steve/Alex. Tap a player to open their full tier report. Drag cards between tiers.</div>
+    <div class="hint">Premium pulls the real Mojang skin. Cracked accounts have no skin on record, so paste a direct skin texture PNG URL if you have one (e.g. the "Skin" download link from NameMC), or leave blank to use the default Steve/Alex. Tap a player to open their full tier report and drag the 3D model to rotate it. Drag cards between tiers.</div>
   </div>
   <div class="view-note" id="viewNote">Viewing as guest — log in as admin to add players and edit rankings. Tap any player to see their report.</div>
 
@@ -428,6 +431,39 @@ const ADMIN_PIN = '2468'; // change this to whatever PIN you want admins to use
 let players = []; // {id, ign, type, skinUrl, tier, testedOn, skills:{grinding,gamesense,pvp}}
 let draggedId = null;
 let isAdmin = false;
+let currentSkinViewer = null;
+
+/* ---------- 3D SKIN MODEL (drag to rotate) ---------- */
+async function mountSkinViewer(canvas, skinUrl){
+  if(currentSkinViewer){
+    try{ currentSkinViewer.dispose(); }catch(e){}
+    currentSkinViewer = null;
+  }
+  if(!canvas) return;
+  const size = canvas.parentElement.clientWidth || 160;
+  try{
+    const skinview3d = await import('https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/+esm');
+    // canvas may have been removed (report closed) before the import resolved
+    if(!document.body.contains(canvas)) return;
+    currentSkinViewer = new skinview3d.SkinViewer({
+      canvas,
+      width: size,
+      height: size,
+      skin: skinUrl
+    });
+    currentSkinViewer.autoRotate = false;
+    currentSkinViewer.zoom = 0.85;
+    // Mouse/touch drag-to-rotate is enabled by default on SkinViewer.
+  }catch(err){
+    console.error('3D skin viewer failed to load', err);
+  }
+}
+function disposeSkinViewer(){
+  if(currentSkinViewer){
+    try{ currentSkinViewer.dispose(); }catch(e){}
+    currentSkinViewer = null;
+  }
+}
 
 const tiersEl = document.getElementById('tiers');
 const poolEl = document.getElementById('pool');
@@ -461,6 +497,11 @@ function headUrl(p){
 function bigSkinUrl(p){
   if(p.type === 'cracked' && p.skinUrl){ return p.skinUrl; }
   return `https://mc-heads.net/body/${encodeURIComponent(p.ign)}/200`;
+}
+function skinTextureUrl(p){
+  // Raw skin texture (needed for the rotatable 3D model), not a rendered pose image.
+  if(p.type === 'cracked' && p.skinUrl){ return p.skinUrl; }
+  return `https://mc-heads.net/skin/${encodeURIComponent(p.ign)}`;
 }
 function tierLabel(id){
   const t = TIERS.find(t=>t.id===id);
@@ -558,6 +599,7 @@ function openReport(id){
 }
 function closeReport(){
   modalBackdrop.classList.remove('open');
+  disposeSkinViewer();
   reportCard.innerHTML = '';
 }
 modalBackdrop.addEventListener('click', e=>{
@@ -605,7 +647,8 @@ function renderReport(p){
       <div class="tier-box">
         <div class="field-label">OVERALL TIER</div>
         ${tierControl}
-        <div class="skin-frame"><img src="${bigSkinUrl(p)}" alt="${p.ign} skin"></div>
+        <div class="skin-frame"><canvas id="skinCanvas"></canvas></div>
+        <div class="skin-frame-hint">Drag to rotate</div>
       </div>
     </div>
     <div class="skills-title">SKILLS</div>
@@ -619,6 +662,7 @@ function renderReport(p){
   `;
 
   document.getElementById('closeReportBtn').addEventListener('click', closeReport);
+  mountSkinViewer(document.getElementById('skinCanvas'), skinTextureUrl(p));
 
   if(isAdmin){
     document.getElementById('saveReportBtn').addEventListener('click', ()=>{
