@@ -638,18 +638,18 @@ function renderReport(p){
   }
 }
 
-/* ---------- STORAGE (shared roster, personal admin flag) ---------- */
+/* ---------- STORAGE (localStorage — per-browser) ---------- */
 async function save(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(players), true);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
   }catch(err){
     console.error('Storage save failed', err);
   }
 }
 async function load(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if(res && res.value){ players = JSON.parse(res.value); }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ players = JSON.parse(raw); }
   }catch(err){
     players = [];
   }
@@ -657,8 +657,7 @@ async function load(){
 }
 async function loadAdminFlag(){
   try{
-    const res = await window.storage.get(ADMIN_KEY, false);
-    isAdmin = !!(res && res.value === 'true');
+    isAdmin = localStorage.getItem(ADMIN_KEY) === 'true';
   }catch(err){
     isAdmin = false;
   }
@@ -671,7 +670,7 @@ function updateAdminBtn(){
 adminBtn.addEventListener('click', async ()=>{
   if(isAdmin){
     isAdmin = false;
-    await window.storage.set(ADMIN_KEY, 'false', false);
+    localStorage.setItem(ADMIN_KEY, 'false');
     updateAdminBtn();
     renderAll();
     return;
@@ -680,7 +679,7 @@ adminBtn.addEventListener('click', async ()=>{
   if(pin === null) return;
   if(pin === ADMIN_PIN){
     isAdmin = true;
-    await window.storage.set(ADMIN_KEY, 'true', false);
+    localStorage.setItem(ADMIN_KEY, 'true');
     updateAdminBtn();
     renderAll();
     statusEl.textContent = 'Logged in as admin';
