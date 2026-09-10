@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Tier Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #08070b;
+    --line: #d99bb0;
+    --line-dim: #4a3540;
+    --pink: #e0a4b8;
+    --pink-soft: #b98393;
+    --white: #f3f1ee;
+    --grey: #8b8790;
+    --splus: #f0b8ca;
+    --s: #e0a4b8;
+    --a: #c98a9c;
+    --b: #a97488;
+    --c: #8a5f72;
+    --d: #6b4a5a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(200,120,150,0.08), transparent 40%),
+      radial-gradient(ellipse at 80% 90%, rgba(160,90,130,0.06), transparent 45%),
+      var(--bg);
+    color:var(--white);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  .eyebrow{
+    color:var(--pink);
+    font-size:13px;
+    letter-spacing:0.08em;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:2px;
+  }
+  .eyebrow::after{content:'';flex:1;height:1px;background:var(--line-dim);}
+
+  h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    font-size:clamp(46px,10vw,88px);
+    line-height:0.88;
+    margin:2px 0 6px;
+    color:var(--white);
+    letter-spacing:0.01em;
+    text-shadow: 0 0 30px rgba(230,180,200,0.08);
+  }
+
+  .top-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+  .admin-btn{
+    background:none;
+    border:1px solid var(--line-dim);
+    color:var(--grey);
+    padding:8px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:0.04em;
+    border-radius:2px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .admin-btn:hover{border-color:var(--pink);color:var(--pink);}
+  .admin-btn.is-admin{border-color:var(--pink);color:var(--pink);background:rgba(224,164,184,0.08);}
+
+  .panel{
+    border:1px solid var(--line-dim);
+    border-radius:2px;
+    padding:16px 18px;
+    background:rgba(20,16,22,0.4);
+    position:relative;
+  }
+
+  .add-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .add-row input[type=text]{
+    flex:1;
+    min-width:160px;
+    background:#131117;
+    border:1px solid var(--line-dim);
+    color:var(--white);
+    padding:11px 12px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    border-radius:2px;
+  }
+  .add-row input[type=text]:focus{outline:none;border-color:var(--pink);}
+  .toggle-group{display:flex;border:1px solid var(--line-dim);border-radius:2px;overflow:hidden;}
+  .toggle-group button{
+    background:#131117;
+    color:var(--grey);
+    border:none;
+    padding:11px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    cursor:pointer;
+    letter-spacing:0.03em;
+  }
+  .toggle-group button.active{background:var(--pink-soft);color:#150e12;font-weight:700;}
+  .add-btn{
+    background:var(--pink);
+    color:#150e12;
+    border:none;
+    padding:11px 20px;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:13px;
+    border-radius:2px;
+    cursor:pointer;
+    letter-spacing:0.03em;
+  }
+  .add-btn:hover{background:var(--white);}
+  .add-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .skin-url-row{display:none;margin-bottom:10px;}
+  .skin-url-row.show{display:block;}
+  .skin-url-row input{
+    width:100%;
+    background:#131117;
+    border:1px solid var(--line-dim);
+    color:var(--white);
+    padding:11px 12px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    border-radius:2px;
+  }
+  .skin-url-row input:focus{outline:none;border-color:var(--pink);}
+
+  .section-title{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:26px;
+    display:flex;align-items:center;gap:12px;
+    margin:30px 0 12px;
+  }
+  .section-title::after{content:'';flex:1;height:1px;background:var(--line-dim);}
+
+  .pool{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    min-height:70px;
+    padding:14px;
+    border:1px dashed var(--line-dim);
+    border-radius:3px;
+  }
+  .pool.dragover{border-color:var(--pink);background:rgba(224,164,184,0.05);}
+  .pool-empty{color:var(--grey);font-size:13px;padding:8px;}
+
+  .tier-row{
+    display:flex;
+    align-items:stretch;
+    border:1px solid var(--line-dim);
+    border-top:none;
+  }
+  .tier-row:first-child{border-top:1px solid var(--line-dim);}
+  .tier-label{
+    width:72px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Anton',sans-serif;
+    font-size:30px;
+    border-right:1px solid var(--line-dim);
+  }
+  .tier-splus .tier-label{color:var(--splus);}
+  .tier-s .tier-label{color:var(--s);}
+  .tier-a .tier-label{color:var(--a);}
+  .tier-b .tier-label{color:var(--b);}
+  .tier-c .tier-label{color:var(--c);}
+  .tier-d .tier-label{color:var(--d);}
+
+  .tier-drop{
+    flex:1;
+    display:flex;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:8px;
+    padding:10px;
+    min-height:64px;
+  }
+  .tier-drop.dragover{background:rgba(224,164,184,0.06);}
+
+  .card{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background:#151119;
+    border:1px solid var(--line-dim);
+    border-radius:3px;
+    padding:5px 8px 5px 5px;
+    cursor:pointer;
+    user-select:none;
+    font-size:12px;
+    max-width:180px;
+  }
+  .card[draggable="true"]{cursor:grab;}
+  .card:active{cursor:grabbing;}
+  .card.dragging{opacity:0.35;}
+  .card img{
+    width:26px;height:26px;
+    image-rendering:pixelated;
+    border-radius:2px;
+    flex-shrink:0;
+    background:#222;
+  }
+  .card-meta{display:flex;flex-direction:column;min-width:0;}
+  .card-name{
+    color:var(--white);
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .card-tag{font-size:9px;color:var(--grey);letter-spacing:0.05em;}
+  .card-remove{
+    background:none;border:none;color:var(--grey);
+    cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;flex-shrink:0;
+  }
+  .card-remove:hover{color:var(--pink);}
+
+  .hint{
+    color:var(--grey);
+    font-size:11.5px;
+    margin-top:6px;
+    line-height:1.5;
+  }
+  .footer{
+    margin-top:30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .reset-btn{
+    background:none;
+    border:1px solid var(--line-dim);
+    color:var(--grey);
+    padding:8px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .reset-btn:hover{border-color:var(--pink);color:var(--pink);}
+  .status{font-size:11.5px;color:var(--grey);}
+  .view-note{color:var(--grey);font-size:11.5px;margin-top:10px;}
+
+  /* ---------- REPORT MODAL ---------- */
+  .modal-backdrop{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(4,3,6,0.82);
+    z-index:50;
+    padding:24px 14px;
+    overflow-y:auto;
+  }
+  .modal-backdrop.open{display:block;}
+  .report{
+    max-width:640px;
+    margin:0 auto;
+    background:
+      radial-gradient(ellipse at 15% 0%, rgba(224,164,184,0.10), transparent 45%),
+      radial-gradient(ellipse at 90% 100%, rgba(180,110,150,0.08), transparent 50%),
+      #0a0810;
+    border:1px solid var(--line-dim);
+    border-radius:3px;
+    padding:26px 22px 22px;
+    position:relative;
+  }
+  .report-close{
+    position:absolute; top:14px; right:14px;
+    background:none;border:1px solid var(--line-dim);color:var(--grey);
+    width:30px;height:30px;border-radius:2px;cursor:pointer;font-size:16px;
+  }
+  .report-close:hover{color:var(--pink);border-color:var(--pink);}
+  .report h2{
+    font-family:'Anton',sans-serif;font-weight:400;
+    font-size:clamp(34px,8vw,52px);line-height:0.9;margin:2px 0 22px;
+  }
+  .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
+  @media(max-width:520px){.report-grid{grid-template-columns:1fr;}}
+  .info-box, .tier-box{
+    border:1px solid var(--line-dim);
+    border-radius:2px;
+    padding:14px;
+    position:relative;
+  }
+  .info-box::before,.info-box::after,.tier-box::before,.tier-box::after,.skin-frame::before,.skin-frame::after{
+    content:'';position:absolute;width:9px;height:9px;border-color:var(--pink-soft);border-style:solid;
+  }
+  .info-box::before,.tier-box::before,.skin-frame::before{top:-1px;left:-1px;border-width:1px 0 0 1px;}
+  .info-box::after,.tier-box::after,.skin-frame::after{bottom:-1px;right:-1px;border-width:0 1px 1px 0;}
+  .field-label{color:var(--pink);font-size:10.5px;letter-spacing:0.06em;margin-bottom:2px;}
+  .field-value{font-size:15px;margin-bottom:12px;word-break:break-word;}
+  .field-value:last-child{margin-bottom:0;}
+  .field-value input, .field-value select{
+    width:100%;background:#131117;border:1px solid var(--line-dim);color:var(--white);
+    padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:2px;
+  }
+  .tier-box{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .tier-box .field-label{align-self:flex-start;}
+  .overall-tier{font-family:'Anton',sans-serif;font-size:52px;margin:4px 0 10px;}
+  .skin-frame{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    max-width:160px;
+    border:1px solid var(--line-dim);
+    border-radius:2px;
+    background:#0d0b12;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .skin-frame img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;}
+  .skills-title, .breakdown-title{
+    font-family:'Anton',sans-serif;font-weight:400;font-size:19px;
+    display:flex;align-items:center;gap:10px;margin:0 0 10px;
+  }
+  .skills-title::after, .breakdown-title::after{content:'';flex:1;height:1px;background:var(--line-dim);}
+  .skills-box{border:1px solid var(--line-dim);border-radius:2px;padding:4px 14px;margin-bottom:22px;}
+  .skill-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-dim);}
+  .skill-row:last-child{border-bottom:none;}
+  .skill-name{font-size:13px;}
+  .skill-val{font-family:'Anton',sans-serif;font-size:20px;color:var(--pink-soft);}
+  .skill-row select{
+    background:#131117;border:1px solid var(--line-dim);color:var(--pink-soft);
+    font-family:'Anton',sans-serif;font-size:16px;padding:4px 8px;border-radius:2px;
+  }
+  .breakdown-strip{
+    display:flex;border:1px solid var(--line-dim);border-radius:2px;overflow:hidden;
+  }
+  .breakdown-strip div{
+    flex:1;text-align:center;padding:10px 4px;font-family:'Anton',sans-serif;font-size:20px;
+    color:var(--pink-soft);border-right:1px solid var(--line-dim);opacity:0.35;
+  }
+  .breakdown-strip div:last-child{border-right:none;}
+  .breakdown-strip div.current{opacity:1;background:rgba(224,164,184,0.12);color:var(--pink);}
+  .report-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .save-btn{
+    background:var(--pink);color:#150e12;border:none;padding:9px 18px;
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px;
+    border-radius:2px;cursor:pointer;letter-spacing:0.03em;
+  }
+  .save-btn:hover{background:var(--white);}
+  .nmc-link{color:var(--grey);font-size:11.5px;text-decoration:none;align-self:center;}
+  .nmc-link:hover{color:var(--pink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-row">
+    <div style="flex:1;min-width:220px;">
+      <div class="eyebrow">PLAYER</div>
+      <h1>TIER REPORT</h1>
+    </div>
+    <button class="admin-btn" id="adminBtn">ADMIN LOGIN</button>
+  </div>
+
+  <div class="panel" id="addPanel" style="display:none;">
+    <div class="add-row">
+      <input type="text" id="ignInput" placeholder="Minecraft IGN" maxlength="16">
+      <div class="toggle-group">
+        <button type="button" id="btnPremium" class="active">PREMIUM</button>
+        <button type="button" id="btnCracked">CRACKED</button>
+      </div>
+      <button class="add-btn" id="addBtn">ADD PLAYER</button>
+    </div>
+    <div class="skin-url-row" id="skinUrlRow">
+      <input type="text" id="skinUrlInput" placeholder="Skin render URL (optional — e.g. from namemc.com, leave blank for default Steve/Alex)">
+    </div>
+    <div class="hint">Premium pulls the real Mojang skin head. Cracked accounts have no skin on record, so paste a skin render URL if you have one, or leave blank to use the default Steve/Alex. Tap a player to open their full tier report. Drag cards between tiers.</div>
+  </div>
+  <div class="view-note" id="viewNote">Viewing as guest — log in as admin to add players and edit rankings. Tap any player to see their report.</div>
+
+  <div class="section-title">UNRANKED</div>
+  <div class="pool" id="pool">
+    <div class="pool-empty" id="poolEmpty">No unranked players yet.</div>
+  </div>
+
+  <div class="section-title">TIER BREAKDOWN</div>
+  <div id="tiers"></div>
+
+  <div class="footer">
+    <button class="reset-btn" id="resetBtn" style="display:none;">Clear all data</button>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="report" id="reportCard"></div>
+</div>
+
+<script>
+const TIERS = [
+  {id:'splus', label:'S+', cls:'tier-splus'},
+  {id:'s', label:'S', cls:'tier-s'},
+  {id:'a', label:'A', cls:'tier-a'},
+  {id:'b', label:'B', cls:'tier-b'},
+  {id:'c', label:'C', cls:'tier-c'},
+  {id:'d', label:'D', cls:'tier-d'},
+];
+const SKILL_GRADES = ['S+','S','A','B','C','D'];
+const SKILLS = [
+  {id:'grinding', label:'GRINDING'},
+  {id:'gamesense', label:'GAME SENSE'},
+  {id:'pvp', label:'PVP'},
+];
+const STORAGE_KEY = 'players-v2';
+const ADMIN_KEY = 'is-admin-v1';
+const ADMIN_PIN = '2468'; // change this to whatever PIN you want admins to use
+
+let players = []; // {id, ign, type, skinUrl, tier, testedOn, skills:{grinding,gamesense,pvp}}
+let draggedId = null;
+let isAdmin = false;
+
+const tiersEl = document.getElementById('tiers');
+const poolEl = document.getElementById('pool');
+const poolEmpty = document.getElementById('poolEmpty');
+const statusEl = document.getElementById('status');
+const addPanel = document.getElementById('addPanel');
+const viewNote = document.getElementById('viewNote');
+const resetBtn = document.getElementById('resetBtn');
+const adminBtn = document.getElementById('adminBtn');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const reportCard = document.getElementById('reportCard');
+
+function buildTierRows(){
+  tiersEl.innerHTML = '';
+  TIERS.forEach(t=>{
+    const row = document.createElement('div');
+    row.className = 'tier-row ' + t.cls;
+    row.innerHTML = `
+      <div class="tier-label">${t.label}</div>
+      <div class="tier-drop" data-tier="${t.id}"></div>
+    `;
+    tiersEl.appendChild(row);
+  });
+  attachDropZones();
+}
+
+function headUrl(p){
+  if(p.type === 'cracked' && p.skinUrl){ return p.skinUrl; }
+  return `https://mc-heads.net/avatar/${encodeURIComponent(p.ign)}/64`;
+}
+function bigSkinUrl(p){
+  if(p.type === 'cracked' && p.skinUrl){ return p.skinUrl; }
+  return `https://mc-heads.net/body/${encodeURIComponent(p.ign)}/200`;
+}
+function tierLabel(id){
+  const t = TIERS.find(t=>t.id===id);
+  return t ? t.label : '—';
+}
+
+function renderCard(p){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = isAdmin;
+  card.dataset.id = p.id;
+  card.innerHTML = `
+    <img src="${headUrl(p)}" alt="${p.ign} head" loading="lazy">
+    <div class="card-meta">
+      <span class="card-name">${p.ign}</span>
+      <span class="card-tag">${p.type === 'premium' ? 'PREMIUM' : 'CRACKED'}</span>
+    </div>
+    ${isAdmin ? '<button class="card-remove" title="Remove">&times;</button>' : ''}
+  `;
+  card.addEventListener('click', (e)=>{
+    if(e.target.closest('.card-remove')) return;
+    openReport(p.id);
+  });
+  if(isAdmin){
+    card.addEventListener('dragstart', e=>{
+      draggedId = p.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', ()=>{
+      card.classList.remove('dragging');
+      draggedId = null;
+    });
+    card.querySelector('.card-remove').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(!confirm(`Remove ${p.ign}?`)) return;
+      players = players.filter(x=>x.id!==p.id);
+      save();
+      renderAll();
+    });
+  }
+  return card;
+}
+
+function renderAll(){
+  poolEl.querySelectorAll('.card').forEach(c=>c.remove());
+  document.querySelectorAll('.tier-drop').forEach(z=>{
+    z.querySelectorAll('.card').forEach(c=>c.remove());
+  });
+
+  const unranked = players.filter(p=>!p.tier);
+  poolEmpty.style.display = unranked.length ? 'none' : 'block';
+  unranked.forEach(p=> poolEl.appendChild(renderCard(p)));
+
+  TIERS.forEach(t=>{
+    const zone = document.querySelector(`.tier-drop[data-tier="${t.id}"]`);
+    players.filter(p=>p.tier===t.id).forEach(p=> zone.appendChild(renderCard(p)));
+  });
+
+  statusEl.textContent = players.length ? `${players.length} player${players.length===1?'':'s'} tracked` : '';
+  addPanel.style.display = isAdmin ? 'block' : 'none';
+  viewNote.style.display = isAdmin ? 'none' : 'block';
+  resetBtn.style.display = isAdmin ? 'inline-block' : 'none';
+}
+
+function attachDropZones(){
+  const zones = [poolEl, ...document.querySelectorAll('.tier-drop')];
+  zones.forEach(zone=>{
+    zone.addEventListener('dragover', e=>{
+      if(!isAdmin) return;
+      e.preventDefault();
+      zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e=>{
+      if(!isAdmin) return;
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      if(!draggedId) return;
+      const p = players.find(x=>x.id===draggedId);
+      if(!p) return;
+      p.tier = zone.dataset.tier || null;
+      save();
+      renderAll();
+    });
+  });
+}
+
+/* ---------- REPORT MODAL ---------- */
+function openReport(id){
+  const p = players.find(x=>x.id===id);
+  if(!p) return;
+  renderReport(p);
+  modalBackdrop.classList.add('open');
+}
+function closeReport(){
+  modalBackdrop.classList.remove('open');
+  reportCard.innerHTML = '';
+}
+modalBackdrop.addEventListener('click', e=>{
+  if(e.target === modalBackdrop) closeReport();
+});
+
+function renderReport(p){
+  const tested = p.testedOn || '—';
+  const skillRows = SKILLS.map(s=>{
+    const val = p.skills && p.skills[s.id] ? p.skills[s.id] : '—';
+    if(isAdmin){
+      const opts = SKILL_GRADES.map(g=>`<option value="${g}" ${p.skills && p.skills[s.id]===g ? 'selected':''}>${g}</option>`).join('');
+      return `<div class="skill-row"><span class="skill-name">${s.label}:</span>
+        <select data-skill="${s.id}">
+          <option value="" ${!(p.skills && p.skills[s.id]) ? 'selected':''}>—</option>
+          ${opts}
+        </select>
+      </div>`;
+    }
+    return `<div class="skill-row"><span class="skill-name">${s.label}:</span><span class="skill-val">${val}</span></div>`;
+  }).join('');
+
+  const breakdownStrip = TIERS.map(t=>`<div class="${p.tier===t.id ? 'current':''}">${t.label}</div>`).join('');
+
+  const tierControl = isAdmin
+    ? `<select id="tierSelect" style="margin-bottom:10px;">
+        <option value="" ${!p.tier?'selected':''}>UNRANKED</option>
+        ${TIERS.map(t=>`<option value="${t.id}" ${p.tier===t.id?'selected':''}>${t.label}</option>`).join('')}
+       </select>`
+    : `<div class="overall-tier">${tierLabel(p.tier)}</div>`;
+
+  reportCard.innerHTML = `
+    <button class="report-close" id="closeReportBtn">&times;</button>
+    <div class="eyebrow" style="margin-bottom:0;">PLAYER</div>
+    <h2>TIER REPORT</h2>
+    <div class="report-grid">
+      <div class="info-box">
+        <div class="field-label">PLAYER NAME</div>
+        <div class="field-value">${p.ign}</div>
+        <div class="field-label">TESTED ON</div>
+        <div class="field-value">${isAdmin ? `<input type="date" id="testedInput" value="${p.testedOn || ''}">` : tested}</div>
+        <div class="field-label">MINECRAFT IGN</div>
+        <div class="field-value">${p.ign} <span class="card-tag">${p.type === 'premium' ? 'PREMIUM' : 'CRACKED'}</span></div>
+      </div>
+      <div class="tier-box">
+        <div class="field-label">OVERALL TIER</div>
+        ${tierControl}
+        <div class="skin-frame"><img src="${bigSkinUrl(p)}" alt="${p.ign} skin"></div>
+      </div>
+    </div>
+    <div class="skills-title">SKILLS</div>
+    <div class="skills-box">${skillRows}</div>
+    <div class="breakdown-title">TIER BREAKDOWN</div>
+    <div class="breakdown-strip">${breakdownStrip}</div>
+    <div class="report-actions">
+      <a class="nmc-link" href="https://namemc.com/profile/${encodeURIComponent(p.ign)}" target="_blank" rel="noopener">View on NameMC →</a>
+      ${isAdmin ? '<button class="save-btn" id="saveReportBtn">Save changes</button>' : ''}
+    </div>
+  `;
+
+  document.getElementById('closeReportBtn').addEventListener('click', closeReport);
+
+  if(isAdmin){
+    document.getElementById('saveReportBtn').addEventListener('click', ()=>{
+      const tierSelect = document.getElementById('tierSelect');
+      const testedInput = document.getElementById('testedInput');
+      p.tier = tierSelect.value || null;
+      p.testedOn = testedInput.value || null;
+      p.skills = p.skills || {};
+      reportCard.querySelectorAll('select[data-skill]').forEach(sel=>{
+        p.skills[sel.dataset.skill] = sel.value || null;
+      });
+      save();
+      renderAll();
+      renderReport(p);
+      statusEl.textContent = `Saved ${p.ign}`;
+    });
+  }
+}
+
+/* ---------- STORAGE (shared roster, personal admin flag) ---------- */
+async function save(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(players), true);
+  }catch(err){
+    console.error('Storage save failed', err);
+  }
+}
+async function load(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){ players = JSON.parse(res.value); }
+  }catch(err){
+    players = [];
+  }
+  renderAll();
+}
+async function loadAdminFlag(){
+  try{
+    const res = await window.storage.get(ADMIN_KEY, false);
+    isAdmin = !!(res && res.value === 'true');
+  }catch(err){
+    isAdmin = false;
+  }
+  updateAdminBtn();
+}
+function updateAdminBtn(){
+  adminBtn.textContent = isAdmin ? 'ADMIN ✓ LOG OUT' : 'ADMIN LOGIN';
+  adminBtn.classList.toggle('is-admin', isAdmin);
+}
+adminBtn.addEventListener('click', async ()=>{
+  if(isAdmin){
+    isAdmin = false;
+    await window.storage.set(ADMIN_KEY, 'false', false);
+    updateAdminBtn();
+    renderAll();
+    return;
+  }
+  const pin = prompt('Enter admin PIN:');
+  if(pin === null) return;
+  if(pin === ADMIN_PIN){
+    isAdmin = true;
+    await window.storage.set(ADMIN_KEY, 'true', false);
+    updateAdminBtn();
+    renderAll();
+    statusEl.textContent = 'Logged in as admin';
+  } else {
+    alert('Wrong PIN.');
+  }
+});
+
+/* ---------- ADD PLAYER FORM ---------- */
+let selectedType = 'premium';
+const skinUrlRow = document.getElementById('skinUrlRow');
+document.getElementById('btnPremium').addEventListener('click', ()=>{
+  selectedType = 'premium';
+  document.getElementById('btnPremium').classList.add('active');
+  document.getElementById('btnCracked').classList.remove('active');
+  skinUrlRow.classList.remove('show');
+});
+document.getElementById('btnCracked').addEventListener('click', ()=>{
+  selectedType = 'cracked';
+  document.getElementById('btnCracked').classList.add('active');
+  document.getElementById('btnPremium').classList.remove('active');
+  skinUrlRow.classList.add('show');
+});
+
+const ignInput = document.getElementById('ignInput');
+const skinUrlInput = document.getElementById('skinUrlInput');
+document.getElementById('addBtn').addEventListener('click', addPlayer);
+ignInput.addEventListener('keydown', e=>{ if(e.key==='Enter') addPlayer(); });
+
+function addPlayer(){
+  if(!isAdmin) return;
+  const ign = ignInput.value.trim();
+  if(!ign) return;
+  if(players.some(p=>p.ign.toLowerCase()===ign.toLowerCase())){
+    statusEl.textContent = `${ign} is already on the list`;
+    return;
+  }
+  players.push({
+    id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    ign,
+    type: selectedType,
+    skinUrl: selectedType === 'cracked' ? (skinUrlInput.value.trim() || null) : null,
+    tier: null,
+    testedOn: new Date().toISOString().slice(0,10),
+    skills: {},
+  });
+  ignInput.value = '';
+  skinUrlInput.value = '';
+  save();
+  renderAll();
+}
+
+resetBtn.addEventListener('click', async ()=>{
+  if(!isAdmin) return;
+  if(!confirm('Clear every player from this tier list? This affects everyone viewing this board.')) return;
+  players = [];
+  await save();
+  renderAll();
+});
+
+async function init(){
+  buildTierRows();
+  await loadAdminFlag();
+  await load();
+}
+init();
+</script>
+</body>
+</html>
